@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd">
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="6e30f241-5ce9-4b62-9be8-0af9f6591b0b" >
+		<db:my-sql-connection host="${db.host}" port="${db.port}" user="${secure::db.user}" password="${secure::db.password}" database="${db.database}" />
+	</db:config>
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="46112cac-4703-4348-93ff-664624aaf88c" >
+		<http:listener-connection host="${http.host}" port="${http.port}" />
+	</http:listener-config>
+	<configuration-properties doc:name="Configuration properties" doc:id="8a804c3d-59c5-4761-ac37-b37445ff9cac" file="${env}.properties"/>
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="6b252e59-c25e-4861-a32e-81840f4da8f1" file="${env}.secure.properties" key="${key}" >
+		<secure-properties:encrypt algorithm="Blowfish" />
+	</secure-properties:config>
+	<flow name="untill-successFlow" doc:id="41aff798-06f0-4f45-9a94-7282359f6190" >
+		<http:listener doc:name="Listener" doc:id="b7616595-337b-42a2-b14b-7ec21f524b11" config-ref="HTTP_Listener_config" path="${http.path}"/>
+		<until-successful maxRetries="5" doc:name="Until Successful" doc:id="39449d35-dff5-4a22-9135-a6a2ee797be6" millisBetweenRetries="10000">
+			<logger level="INFO" doc:name="Logger" doc:id="aedcea65-5e11-43e9-b2c7-1bded55b48fe" message="tried to retrive the data"/>
+			<db:select doc:name="Select" doc:id="809525fa-e2c5-4579-955e-78a4cc3090b1" config-ref="Database_Config">
+			<db:sql><![CDATA[SELECT * FROM customer_management]]></db:sql>
+		</db:select>
+			<logger level="INFO" doc:name="Logger" doc:id="6327750b-69b7-430a-bb45-417675a2c70a" message="data is recieved from database successfully"/>
+		</until-successful>
+		<ee:transform doc:name="Transform Message" doc:id="8f5914b2-ff90-43a0-a4cc-aa1442cba710" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
